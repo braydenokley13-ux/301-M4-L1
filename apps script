@@ -1,0 +1,934 @@
+/************************************************************
+ * BOW Track 301 — Module 4 — Lesson 1
+ * DECISION ROOM SIM (Expressive System — FINAL)
+ *
+ * This script:
+ * - Uses all structural parts of the lesson:
+ *   • START_HERE (identity)
+ *   • BETS_AND_ASSUMPTIONS (risk + fragility)
+ *   • WHY_IT_WORKED_BEFORE (stability signals)
+ *   • REALITY_MOVES (leadership decision + snapped assumption + rationale)
+ * - Detects insight level from the rationale (assumption + context + change)
+ * - Computes Bronze / Silver / Gold tiers
+ * - Writes reflection to FINISH_AND_CLAIM
+ * - Updates STATE (status, tier, completion ratio, claim code)
+ * - Logs completion once in SUBMISSIONS_LOG
+ * - Sends a completion email once
+ *
+ * COMPLETION RULE (your choice B):
+ * To “finalize” the Decision Room:
+ *   1) Identity filled (name + email)
+ *   2) All BETS_AND_ASSUMPTIONS rows tagged (where + fragility)
+ *   3) WHY_IT_WORKED_BEFORE stability signals tagged
+ *   4) REALITY_MOVES decision + snapped assumption + rationale finished
+ *   5) Rationale shows at least MINIMUM insight (not “none”)
+ ************************************************************/
+
+/** =========================
+ * 1) SYSTEM IDENTITY & MAPS
+ * ========================= */
+
+const BOW = {
+  TZ: "America/New_York",
+
+  PRODUCT: {
+    BRAND: "BOW Sports Capital",
+    TRACK: "Track 301",
+    MODULE: "Module 4",
+    LESSON: "Lesson 1",
+    TITLE: "Models Are Maps, Not Reality",
+    SIM_NAME: "Decision Room",
+    VERSION: "M4L1-EXP-1.1"
+  },
+
+  SHEETS: {
+    START: "START_HERE",
+    MEMO: "INTERNAL_MODEL_MEMO",          // read-only for now (no gating)
+    ASSUMPTIONS: "BETS_AND_ASSUMPTIONS",
+    STABILITY: "WHY_IT_WORKED_BEFORE",
+    SHOCK: "REALITY_MOVES",
+    FINISH: "FINISH_AND_CLAIM",
+    STATE: "STATE",
+    ADMIN: "ADMIN_CONFIG",
+    LOG: "SUBMISSIONS_LOG"
+  },
+
+  CELLS: {
+    // START_HERE
+    STUDENT_NAME: "C8",
+    STUDENT_EMAIL: "C9",
+
+    // BETS_AND_ASSUMPTIONS (structural tagging)
+    ASSUMPTION_WHERE_RANGE: "B5:B16",
+    ASSUMPTION_FRAGILITY_RANGE: "C5:C16",
+
+    // WHY_IT_WORKED_BEFORE (stability signals “Present?”)
+    STABILITY_PRESENT_RANGE: "F16:F20",   // F = “Present?” for each stability signal
+
+    // REALITY_MOVES (executive decisions)
+    SHOCK_ACTION: "C16",                  // “Action” dropdown
+    SHOCK_SNAPPED: "C18",                 // “Which assumption snapped first?” dropdown
+    SHOCK_RATIONALE: "B25",               // merged rationale input area (sentence starter filled in)
+
+    // STATE (hidden/system)
+    STATE_STATUS: "B2",                   // STATE_STATUS (IN_PROGRESS / PASS)
+    STATE_TIER: "B5",                     // STATE_TIER (Bronze / Silver / Gold)
+    STATE_CLAIM: "B10",                   // CLAIM_CODE
+    STATE_PCT: "B19",                     // COMPLETION_RATIO (0..1)
+
+    // FINISH_AND_CLAIM (student-facing summary)
+    FINISH_STATUS: "C7",                  // Overall status: IN_PROGRESS / COMPLETE
+    FINISH_TIER: "C8",                    // Mastery tier display
+    FINISH_CLAIM: "C9",                   // Visible claim code
+    FINISH_REFLECTION_BLOCK: "B18"        // Anchor for “What You Demonstrated” paragraph
+  },
+
+  VOICE: {
+    STYLE: {
+      NO_GRADES: true,
+      NO_SCORES: true,
+      MENTOR_TONE: true,
+      EXECUTIVE_LANGUAGE: true
+    },
+
+    STATUS: {
+      READY: "You’re ready to claim your insight.",
+      NOT_YET: "You’re close — a few inputs still need to be completed.",
+      MISSING_ID: "Before anything else, add your name and email on START_HERE."
+    },
+
+    NUDGES: {
+      NEED_ACTION: "Make the leadership call first — choose an action under ‘Leadership Options.’",
+      NEED_SNAPPED: "Name what snapped first — which assumption stopped being true?",
+      NEED_RATIONALE: "Use the sentence starter to explain what the model assumed and what changed.",
+      NEED_NO_BLANKS: "Replace the blanks in the sentence starter so your rationale is a complete thought.",
+      NEED_STABILITY: "Tag the stability signals that were present when the model originally worked.",
+      NEED_ASSUMPTIONS: "Tag where the risk lives and how fragile each assumption feels.",
+      NEED_INSIGHT: "Revise your rationale so it explicitly connects a model assumption, the context, and what changed."
+    },
+
+    AFFIRM: {
+      STRUCTURAL: "That’s strong structural thinking: you’re tracing the model back to its assumptions.",
+      CONTEXTUAL: "That’s contextual thinking: you’re tracking the terrain, not just the output.",
+      EXECUTIVE: "That’s executive judgment: using the model without outsourcing responsibility to it."
+    },
+
+    EMAIL: {
+      SUBJECT_DEFAULT: "BOW · Track 301 · Module 4 · Lesson 1 — Completion",
+      BODY_OPEN: "You’ve completed the Decision Room for Lesson 1.",
+      BODY_CORE: "Key insight: models are compressed stories about reality. The skill is noticing what the model assumed — and what changed.",
+      BODY_CLOSE: "Next: Lesson 2 will test what happens when two good models disagree."
+    }
+  },
+
+  LABELS: {
+    TIER_BRONZE: "Bronze",
+    TIER_SILVER: "Silver",
+    TIER_GOLD: "Gold",
+    STATE_PASS: "PASS",
+    STATE_IN_PROGRESS: "IN_PROGRESS"
+  }
+};
+
+/** =========================
+ * 2) CORE HELPERS
+ * ========================= */
+
+function getSheet_(name) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(name);
+  if (!sh) throw new Error("Missing required sheet: " + name);
+  return sh;
+}
+
+function getValue_(sheetName, cellA1) {
+  return getSheet_(sheetName).getRange(cellA1).getValue();
+}
+
+function setValue_(sheetName, cellA1, value) {
+  getSheet_(sheetName).getRange(cellA1).setValue(value);
+}
+
+function getText_(sheetName, cellA1) {
+  const v = getValue_(sheetName, cellA1);
+  return String(v || "").trim();
+}
+
+function normalizeText_(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** =========================
+ * 3) STRUCTURAL COMPLETION CHECKS
+ * ========================= */
+
+/** 3.1 — Identity (START_HERE) */
+
+function identityStatus_() {
+  const name = getText_(BOW.SHEETS.START, BOW.CELLS.STUDENT_NAME);
+  const email = getText_(BOW.SHEETS.START, BOW.CELLS.STUDENT_EMAIL);
+
+  if (!name || !email) {
+    return {
+      ready: false,
+      reason: "missing_identity",
+      message: BOW.VOICE.STATUS.MISSING_ID
+    };
+  }
+  return { ready: true };
+}
+
+/** 3.2 — Assumptions tagged (BETS_AND_ASSUMPTIONS) */
+
+function assumptionsCompletionStatus_() {
+  const sh = getSheet_(BOW.SHEETS.ASSUMPTIONS);
+
+  const whereVals = sh.getRange(BOW.CELLS.ASSUMPTION_WHERE_RANGE).getValues().flat();
+  const fragVals = sh.getRange(BOW.CELLS.ASSUMPTION_FRAGILITY_RANGE).getValues().flat();
+
+  const missingWhere = whereVals.some(v => !v);
+  const missingFrag = fragVals.some(v => !v);
+
+  if (missingWhere || missingFrag) {
+    return {
+      ready: false,
+      reason: "assumptions_incomplete",
+      message: BOW.VOICE.NUDGES.NEED_ASSUMPTIONS
+    };
+  }
+  return { ready: true };
+}
+
+/** 3.3 — Stability signals (WHY_IT_WORKED_BEFORE) */
+
+function stabilityCompletionStatus_() {
+  const sh = getSheet_(BOW.SHEETS.STABILITY);
+  const vals = sh.getRange(BOW.CELLS.STABILITY_PRESENT_RANGE).getValues().flat();
+
+  // Require at least 3 stability signals to be tagged as present / not blank
+  const nonEmpty = vals.filter(v => v !== "" && v !== null).length;
+
+  if (nonEmpty < 3) {
+    return {
+      ready: false,
+      reason: "stability_incomplete",
+      message: BOW.VOICE.NUDGES.NEED_STABILITY
+    };
+  }
+  return { ready: true };
+}
+
+/** 3.4 — Decision inputs (REALITY_MOVES) */
+
+function decisionInputsStatus_() {
+  const action = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_ACTION);
+  const snapped = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_SNAPPED);
+  const rationale = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_RATIONALE);
+
+  if (!action) {
+    return {
+      ready: false,
+      reason: "missing_action",
+      message: BOW.VOICE.NUDGES.NEED_ACTION
+    };
+  }
+  if (!snapped) {
+    return {
+      ready: false,
+      reason: "missing_snapped",
+      message: BOW.VOICE.NUDGES.NEED_SNAPPED
+    };
+  }
+  if (!rationale) {
+    return {
+      ready: false,
+      reason: "missing_rationale",
+      message: BOW.VOICE.NUDGES.NEED_RATIONALE
+    };
+  }
+  if (rationale.indexOf("___") !== -1) {
+    return {
+      ready: false,
+      reason: "rationale_incomplete",
+      message: BOW.VOICE.NUDGES.NEED_NO_BLANKS
+    };
+  }
+  return { ready: true };
+}
+
+/** =========================
+ * 4) INSIGHT DETECTION (Part 3)
+ * ========================= */
+
+const SIGNALS = {
+  ASSUMPTION: [
+    "assum", "bet", "depend", "relied", "quiet", "baked in"
+  ],
+  CONTEXT: [
+    "context", "environment", "terrain", "conditions", "setting", "landscape"
+  ],
+  CHANGE: [
+    "change", "shift", "adapt", "broke", "moved", "no longer", "stopped"
+  ],
+  PRECISION_TRAP: [
+    "precise", "precision", "accurate", "accuracy", "decimal", "exact"
+  ]
+};
+
+function hasSignal_(normalizedText, signalList) {
+  return signalList.some(token => normalizedText.indexOf(token) !== -1);
+}
+
+function detectInsight_() {
+  const raw = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_RATIONALE);
+  const text = normalizeText_(raw);
+
+  if (!text) {
+    return {
+      hasText: false,
+      assumptionAware: false,
+      contextAware: false,
+      changeAware: false,
+      precisionTrap: false,
+      insightLevel: "none"
+    };
+  }
+
+  const assumptionAware = hasSignal_(text, SIGNALS.ASSUMPTION);
+  const contextAware = hasSignal_(text, SIGNALS.CONTEXT);
+  const changeAware = hasSignal_(text, SIGNALS.CHANGE);
+  const precisionTrap = hasSignal_(text, SIGNALS.PRECISION_TRAP);
+
+  let insightLevel = "structural";
+  if (assumptionAware && contextAware && changeAware) {
+    insightLevel = "executive";
+  } else if ((assumptionAware && changeAware) || (contextAware && changeAware)) {
+    insightLevel = "contextual";
+  }
+
+  return {
+    hasText: true,
+    assumptionAware,
+    contextAware,
+    changeAware,
+    precisionTrap,
+    insightLevel
+  };
+}
+
+/** Minimum insight gate for completion (choice B) */
+function insightCompletionStatus_() {
+  const insight = detectInsight_();
+  if (!insight.hasText || insight.insightLevel === "none") {
+    return {
+      ready: false,
+      reason: "insight_insufficient",
+      message: BOW.VOICE.NUDGES.NEED_INSIGHT
+    };
+  }
+  return { ready: true };
+}
+
+/** =========================
+ * 5) ASSUMPTION / CONTEXT / PRECISION / DECISION NARRATORS
+ * (Parts 4–7)
+ * ========================= */
+
+/** 5.1 — Assumption taxonomy & narrator */
+
+const ASSUMPTION_TAXONOMY = [
+  {
+    id: "fatigue_execution",
+    keywords: [
+      "fatigue", "tired", "late game", "legs", "execution", "energy", "wear", "series length"
+    ],
+    narration:
+      "You recognized that the model was quietly betting on fatigue remaining manageable and execution staying stable across games."
+  },
+  {
+    id: "opponent_adaptation",
+    keywords: [
+      "adapt", "adjust", "defense", "defensive", "scheme", "counter", "game plan", "opponent"
+    ],
+    narration:
+      "You noticed that the model assumed opponents would not meaningfully adapt their strategy to remove the underlying advantage."
+  },
+  {
+    id: "psychological_pressure",
+    keywords: [
+      "pressure", "confidence", "mental", "psychological", "panic", "tilt", "stress", "missing", "spiral"
+    ],
+    narration:
+      "You identified that the model depended on behavior remaining emotionally neutral under pressure — an assumption that stopped holding."
+  },
+  {
+    id: "variance_bounds",
+    keywords: [
+      "variance", "cold", "hot", "streak", "outlier", "extreme", "tail", "distribution"
+    ],
+    narration:
+      "You surfaced the assumption that outcomes would stay within historical variance, rather than drifting into extreme tails."
+  },
+  {
+    id: "usage_predictability",
+    keywords: [
+      "usage", "role", "rotation", "minutes", "lineup", "responsibility", "deployment"
+    ],
+    narration:
+      "You recognized that the model relied on usage patterns and roles staying predictable, rather than shifting under pressure."
+  },
+  {
+    id: "health_availability",
+    keywords: [
+      "health", "injury", "availability", "hurt", "nagging", "conditioning"
+    ],
+    narration:
+      "You identified that the model assumed player availability would remain stable enough to treat as baseline."
+  }
+];
+
+function normalizeAssumptionText_(text) {
+  return normalizeText_(text);
+}
+
+function findAssumptionCategory_(normalizedText) {
+  if (!normalizedText) return null;
+  let bestMatch = null;
+  let bestScore = 0;
+
+  ASSUMPTION_TAXONOMY.forEach(category => {
+    let score = 0;
+    category.keywords.forEach(keyword => {
+      if (normalizedText.indexOf(keyword) !== -1) score += 1;
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = category;
+    }
+  });
+
+  return bestScore > 0 ? bestMatch : null;
+}
+
+function narrateAssumptionAwareness_() {
+  const raw = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_SNAPPED);
+  const normalized = normalizeAssumptionText_(raw);
+
+  const category = findAssumptionCategory_(normalized);
+  if (!category) {
+    return {
+      found: false,
+      assumptionId: null,
+      narration:
+        "You flagged that a core assumption stopped holding, even if the exact category wasn’t cleanly named."
+    };
+  }
+
+  return {
+    found: true,
+    assumptionId: category.id,
+    narration: category.narration
+  };
+}
+
+/** 5.2 — Context shift (Part 5) */
+
+const CONTEXT_TAXONOMY = [
+  {
+    id: "strategic_adaptation",
+    keywords: ["adapt", "adjust", "counter", "scheme", "defense", "game plan", "coverage"],
+    narration:
+      "You tracked a strategic shift in the environment — opponents actively adapting in ways the model was not calibrated for."
+  },
+  {
+    id: "temporal_pressure",
+    keywords: ["series", "late", "games", "long", "time", "stretch", "accumulated"],
+    narration:
+      "You noticed time itself becoming a factor — conditions degrading as the situation extended beyond the model’s original horizon."
+  },
+  {
+    id: "behavioral_instability",
+    keywords: ["pressure", "confidence", "pressing", "panic", "mental", "psychological", "spiral"],
+    narration:
+      "You identified behavioral instability entering the environment, introducing noise the model treated as neutral."
+  },
+  {
+    id: "execution_degradation",
+    keywords: ["execution", "shot quality", "efficiency", "miss", "cold", "fatigue", "legs"],
+    narration:
+      "You saw execution quality degrade — the same inputs no longer producing the same outputs."
+  },
+  {
+    id: "variance_expansion",
+    keywords: ["variance", "streak", "outlier", "extreme", "swing", "tail"],
+    narration:
+      "You noticed the outcome distribution widening, pushing results outside the range the model treated as typical."
+  },
+  {
+    id: "environmental_reweighting",
+    keywords: ["playoffs", "stakes", "elimination", "pressure", "intensity", "importance"],
+    narration:
+      "You recognized the environment reweighting incentives — the same actions carrying different consequences under higher stakes."
+  }
+];
+
+function collectContextText_() {
+  const rationale = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_RATIONALE);
+  const snapped = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_SNAPPED);
+  const action = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_ACTION);
+  return normalizeText_([rationale, snapped, action].join(" "));
+}
+
+function detectContextShifts_() {
+  const text = collectContextText_();
+  if (!text) return [];
+  const matches = [];
+  CONTEXT_TAXONOMY.forEach(ctx => {
+    const hit = ctx.keywords.some(k => text.indexOf(k) !== -1);
+    if (hit) matches.push(ctx);
+  });
+  return matches;
+}
+
+function narrateContextShift_() {
+  const matches = detectContextShifts_();
+  if (!matches.length) {
+    return {
+      found: false,
+      contextIds: [],
+      narration:
+        "You recognized that the broader environment shifted in ways the model did not account for, even if no single factor dominated."
+    };
+  }
+  const selected = matches.slice(0, 2);
+  return {
+    found: true,
+    contextIds: selected.map(m => m.id),
+    narration: selected.map(m => m.narration)
+  };
+}
+
+/** 5.3 — Precision stance (Part 6) */
+
+const PRECISION_SIGNALS = {
+  NEUTRAL: [
+    "number", "numbers", "math", "model output", "projection", "expected value", "ev"
+  ],
+  OVERCONFIDENT: [
+    "exact", "precise", "proves", "clearly shows", "guarantees", "certain", "cannot be wrong"
+  ],
+  SKEPTICAL: [
+    "even though", "despite", "but the model", "on paper", "the numbers say",
+    "looks good numerically", "still misleading"
+  ]
+};
+
+function collectPrecisionText_() {
+  const rationale = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_RATIONALE);
+  const action = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_ACTION);
+  return normalizeText_([rationale, action].join(" "));
+}
+
+function countSignals_(text, tokens) {
+  let count = 0;
+  tokens.forEach(t => {
+    if (text.indexOf(t) !== -1) count += 1;
+  });
+  return count;
+}
+
+function interpretPrecisionStance_() {
+  const text = collectPrecisionText_();
+  if (!text) {
+    return {
+      stance: "unknown",
+      narration:
+        "You didn’t rely on numerical certainty to explain the decision — keeping the focus on context."
+    };
+  }
+
+  const neutralHits = countSignals_(text, PRECISION_SIGNALS.NEUTRAL);
+  const overconfidentHits = countSignals_(text, PRECISION_SIGNALS.OVERCONFIDENT);
+  const skepticalHits = countSignals_(text, PRECISION_SIGNALS.SKEPTICAL);
+
+  if (overconfidentHits > 0 && skepticalHits === 0) {
+    return {
+      stance: "precision_trap",
+      narration:
+        "The model’s numerical confidence played a large role in the reasoning. This is where precision can quietly replace judgment."
+    };
+  }
+  if (skepticalHits > 0) {
+    return {
+      stance: "precision_aware",
+      narration:
+        "You acknowledged what the numbers suggested without letting numerical precision override contextual judgment."
+    };
+  }
+  if (neutralHits > 0) {
+    return {
+      stance: "precision_neutral",
+      narration:
+        "You treated the model’s output as informative, but not decisive — keeping judgment outside the math."
+    };
+  }
+  return {
+    stance: "precision_ignored",
+    narration:
+      "You focused on assumptions and context rather than numerical certainty."
+  };
+}
+
+/** 5.4 — Decision framing (Part 7) */
+
+const DECISION_FRAMING = {
+  FOLLOW: {
+    keywords: ["maintain", "follow", "stay", "keep"],
+    narration:
+      "You treated the model’s output as the primary guide, trusting that its assumptions still broadly held.",
+    lesson:
+      "Following a model can be appropriate when the terrain remains aligned with its design."
+  },
+  ADJUST: {
+    keywords: ["modify", "adjust", "tune", "reweight"],
+    narration:
+      "You used the model as a baseline, then applied judgment to modify it as conditions shifted.",
+    lesson:
+      "Adjustment reflects shared authority between models and human judgment."
+  },
+  OVERRIDE: {
+    keywords: ["override", "input", "not a verdict", "ignore", "set aside"],
+    narration:
+      "You treated the model as an input rather than a verdict, reclaiming executive responsibility as conditions changed.",
+    lesson:
+      "Overriding a model is not anti-analytics — it’s what models are built for when assumptions break."
+  }
+};
+
+function normalizeDecisionText_(text) {
+  return normalizeText_(text);
+}
+
+function detectDecisionFraming_() {
+  const raw = getText_(BOW.SHEETS.SHOCK, BOW.CELLS.SHOCK_ACTION);
+  const text = normalizeDecisionText_(raw);
+
+  if (!text) {
+    return {
+      found: false,
+      framing: null,
+      narration:
+        "You paused before committing to an action — a reminder that decisions require explicit ownership."
+    };
+  }
+
+  for (const key in DECISION_FRAMING) {
+    const frame = DECISION_FRAMING[key];
+    const hit = frame.keywords.some(k => text.indexOf(k) !== -1);
+    if (hit) {
+      return {
+        found: true,
+        framing: key.toLowerCase(),
+        narration: frame.narration,
+        lesson: frame.lesson
+      };
+    }
+  }
+
+  return {
+    found: true,
+    framing: "custom",
+    narration:
+      "You made an explicit leadership call rather than deferring blindly to the model.",
+    lesson:
+      "Executive judgment begins where automated guidance ends."
+  };
+}
+
+/** =========================
+ * 6) REFLECTION COMPOSER (Part 8)
+ * ========================= */
+
+function composeLearningReflection_() {
+  const insight = detectInsight_();
+  const assumption = narrateAssumptionAwareness_();
+  const context = narrateContextShift_();
+  const precision = interpretPrecisionStance_();
+  const decision = detectDecisionFraming_();
+
+  const lines = [];
+
+  if (assumption && assumption.narration) {
+    lines.push(assumption.narration);
+  } else {
+    lines.push(
+      "You recognized that the model rested on assumptions that quietly shaped its guidance."
+    );
+  }
+
+  if (context && context.found && context.narration && context.narration.length) {
+    context.narration.forEach(n => lines.push(n));
+  } else {
+    lines.push(
+      "You noticed the terrain shifting in ways the model was not designed to track."
+    );
+  }
+
+  if (precision && precision.narration) {
+    lines.push(precision.narration);
+  }
+
+  if (decision && decision.narration) {
+    lines.push(decision.narration);
+  }
+
+  if (insight && insight.insightLevel) {
+    if (insight.insightLevel === "executive") {
+      lines.push(BOW.VOICE.AFFIRM.EXECUTIVE);
+    } else if (insight.insightLevel === "contextual") {
+      lines.push(BOW.VOICE.AFFIRM.CONTEXTUAL);
+    } else if (insight.insightLevel === "structural") {
+      lines.push(BOW.VOICE.AFFIRM.STRUCTURAL);
+    }
+  }
+
+  return lines.join(" ");
+}
+
+function writeLearningReflection_() {
+  const sheet = getSheet_(BOW.SHEETS.FINISH);
+  const anchor = BOW.CELLS.FINISH_REFLECTION_BLOCK;
+  const reflection = composeLearningReflection_();
+
+  sheet.getRange(anchor).setValue(
+    "What You Demonstrated:\n\n" + reflection
+  );
+}
+
+/** =========================
+ * 7) COMPLETION TIERS & METRICS (Part 9)
+ * ========================= */
+
+function computeCompletionPct_() {
+  let completed = 0;
+  let total = 5; // identity, assumptions, stability, decision, insight
+
+  if (identityStatus_().ready) completed++;
+  if (assumptionsCompletionStatus_().ready) completed++;
+  if (stabilityCompletionStatus_().ready) completed++;
+  if (decisionInputsStatus_().ready) completed++;
+  if (insightCompletionStatus_().ready) completed++;
+
+  return completed / total;
+}
+
+function determineCompletionTier_() {
+  const assumptionsReady = assumptionsCompletionStatus_().ready;
+  const stabilityReady = stabilityCompletionStatus_().ready;
+  const insight = detectInsight_();
+
+  if (!assumptionsReady || !stabilityReady) {
+    return BOW.LABELS.TIER_BRONZE;
+  }
+
+  if (insight && insight.insightLevel === "executive") {
+    return BOW.LABELS.TIER_GOLD;
+  }
+
+  if (insight && (insight.insightLevel === "contextual" || insight.insightLevel === "structural")) {
+    return BOW.LABELS.TIER_SILVER;
+  }
+
+  return BOW.LABELS.TIER_BRONZE;
+}
+
+function assumptionsFullyCompleted_() {
+  const sh = getSheet_(BOW.SHEETS.ASSUMPTIONS);
+  const whereVals = sh.getRange(BOW.CELLS.ASSUMPTION_WHERE_RANGE).getValues().flat();
+  const fragVals = sh.getRange(BOW.CELLS.ASSUMPTION_FRAGILITY_RANGE).getValues().flat();
+  return whereVals.every(v => v) && fragVals.every(v => v);
+}
+
+function ensureClaimCode_() {
+  const stateSh = getSheet_(BOW.SHEETS.STATE);
+  const existing = String(stateSh.getRange(BOW.CELLS.STATE_CLAIM).getValue() || "").trim();
+  if (existing) return existing;
+
+  const cfg = getSheet_(BOW.SHEETS.ADMIN);
+  const prefix = String(cfg.getRange("C10").getValue() || "BOW-301-M4L1-").trim();
+  const date = Utilities.formatDate(new Date(), BOW.TZ, "yyyyMMdd");
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  const code = prefix + date + "-" + rand;
+
+  stateSh.getRange(BOW.CELLS.STATE_CLAIM).setValue(code);
+  return code;
+}
+
+function collectCompletionMetadata_() {
+  const stateSh = getSheet_(BOW.SHEETS.STATE);
+
+  return {
+    timestamp: new Date(),
+    studentName: getText_(BOW.SHEETS.START, BOW.CELLS.STUDENT_NAME),
+    studentEmail: getText_(BOW.SHEETS.START, BOW.CELLS.STUDENT_EMAIL),
+    tier: determineCompletionTier_(),
+    pct: computeCompletionPct_(),
+    claimCode: ensureClaimCode_()
+  };
+}
+
+/** Full readiness interpreter — structure + minimum insight */
+function interpretReadiness_() {
+  const idCheck = identityStatus_();
+  if (!idCheck.ready) return idCheck;
+
+  const assumptionsCheck = assumptionsCompletionStatus_();
+  if (!assumptionsCheck.ready) return assumptionsCheck;
+
+  const stabilityCheck = stabilityCompletionStatus_();
+  if (!stabilityCheck.ready) return stabilityCheck;
+
+  const decisionCheck = decisionInputsStatus_();
+  if (!decisionCheck.ready) return decisionCheck;
+
+  const insightCheck = insightCompletionStatus_();
+  if (!insightCheck.ready) return insightCheck;
+
+  return {
+    ready: true,
+    reason: "ready",
+    message: BOW.VOICE.STATUS.READY
+  };
+}
+
+function recognizeCompletion_() {
+  const readiness = interpretReadiness_();
+  if (!readiness.ready) {
+    return {
+      completed: false,
+      message: readiness.message
+    };
+  }
+
+  // Write reflection
+  writeLearningReflection_();
+
+  // Compute and persist metadata
+  const meta = collectCompletionMetadata_();
+
+  // Update STATE
+  setValue_(BOW.SHEETS.STATE, BOW.CELLS.STATE_STATUS, BOW.LABELS.STATE_PASS);
+  setValue_(BOW.SHEETS.STATE, BOW.CELLS.STATE_TIER, meta.tier);
+  setValue_(BOW.SHEETS.STATE, BOW.CELLS.STATE_PCT, meta.pct);
+
+  // Update FINISH_AND_CLAIM
+  setValue_(BOW.SHEETS.FINISH, BOW.CELLS.FINISH_STATUS, "COMPLETE");
+  setValue_(BOW.SHEETS.FINISH, BOW.CELLS.FINISH_TIER, meta.tier);
+  setValue_(BOW.SHEETS.FINISH, BOW.CELLS.FINISH_CLAIM, meta.claimCode);
+
+  return {
+    completed: true,
+    message: BOW.VOICE.STATUS.READY,
+    metadata: meta
+  };
+}
+
+/** =========================
+ * 8) LOGGING + EMAIL (Part 10)
+ * ========================= */
+
+function alreadyLogged_(claimCode) {
+  const log = getSheet_(BOW.SHEETS.LOG);
+  const lastRow = log.getLastRow();
+  if (lastRow < 2) return false;
+
+  const codes = log
+    .getRange(2, 5, lastRow - 1, 1)
+    .getValues()
+    .flat()
+    .map(v => String(v || "").trim());
+
+  return codes.indexOf(claimCode) !== -1;
+}
+
+function appendToLog_(meta) {
+  const log = getSheet_(BOW.SHEETS.LOG);
+  log.appendRow([
+    meta.timestamp,
+    meta.studentName,
+    meta.studentEmail,
+    meta.tier,
+    meta.claimCode,
+    meta.pct
+  ]);
+}
+
+function composeCompletionEmail_(meta) {
+  const subject = BOW.VOICE.EMAIL.SUBJECT_DEFAULT;
+  const body =
+    "Hi " + (meta.studentName || "there") + ",\n\n" +
+    BOW.VOICE.EMAIL.BODY_OPEN + "\n\n" +
+    "Your claim code:\n" +
+    meta.claimCode + "\n\n" +
+    "What this means:\n" +
+    BOW.VOICE.EMAIL.BODY_CORE + "\n\n" +
+    "This isn’t about being “right.”\n" +
+    "It’s about recognizing when a good model becomes a bad guide because the world moved.\n\n" +
+    BOW.VOICE.EMAIL.BODY_CLOSE + "\n\n" +
+    "— " + BOW.PRODUCT.BRAND;
+
+  return { subject, body };
+}
+
+/** =========================
+ * 9) UI MENU + ORCHESTRATOR
+ * ========================= */
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Track 301")
+    .addItem("Finalize Decision Room & Send Email", "finalizeDecisionRoom_")
+    .addToUi();
+}
+
+function finalizeDecisionRoom_() {
+  try {
+    const result = recognizeCompletion_();
+
+    if (!result.completed) {
+      SpreadsheetApp.getUi().alert(result.message);
+      return;
+    }
+
+    const meta = result.metadata;
+
+    if (alreadyLogged_(meta.claimCode)) {
+      SpreadsheetApp.getUi().alert(
+        "This Decision Room has already been finalized and emailed."
+      );
+      return;
+    }
+
+    appendToLog_(meta);
+
+    const email = composeCompletionEmail_(meta);
+    MailApp.sendEmail({
+      to: meta.studentEmail,
+      subject: email.subject,
+      body: email.body,
+      name: BOW.PRODUCT.BRAND
+    });
+
+    SpreadsheetApp.getUi().alert(
+      "Decision Room finalized. Reflection written and email sent."
+    );
+  } catch (err) {
+    SpreadsheetApp.getUi().alert(
+      "Something went wrong while finalizing the Decision Room:\n\n" +
+      err.message
+    );
+  }
+}
