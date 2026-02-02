@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAYOFF WAR ROOM | Make The Call</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-orange: #ff6b35;
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --neon-gold: #ffd700;
+            --dark-bg: #0a0a12;
+            --card-bg: #12121f;
+            --glass: rgba(255,255,255,0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Condensed', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .war-room-header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--neon-blue);
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .war-room-header::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 2px;
+            background: var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0,240,255,0.5);
+        }
+
+        .subtitle {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 10px;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Intro Screen */
+        .intro-screen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .scenario-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--neon-orange), #ff8c42);
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,107,53,0.5); }
+            50% { box-shadow: 0 0 40px rgba(255,107,53,0.8); }
+        }
+
+        .intro-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .intro-desc {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.7);
+            max-width: 700px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        /* Player Cards */
+        .player-showcase {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .player-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            width: 280px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 10px 40px rgba(0,240,255,0.2);
+        }
+
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-orange));
+        }
+
+        .player-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .player-team {
+            color: var(--neon-blue);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .player-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0,240,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--neon-green);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Model Display */
+        .model-panel {
+            background: var(--card-bg);
+            border: 2px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .model-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .model-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--neon-blue), #0080ff);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .model-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+        }
+
+        .model-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .prediction-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            height: 60px;
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .prediction-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green), #00cc6a);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 20px;
+            transition: width 1s ease;
+        }
+
+        .prediction-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .confidence-label {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: 'Oswald', sans-serif;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* The Scanner - Hidden Learning */
+        .scanner-section {
+            margin: 40px 0;
+        }
+
+        .scanner-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            padding: 15px 20px;
+            background: var(--glass);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .scanner-header:hover {
+            border-color: var(--neon-orange);
+            background: rgba(255,107,53,0.1);
+        }
+
+        .scanner-icon {
+            font-size: 1.5rem;
+        }
+
+        .scanner-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+        }
+
+        .scanner-hint {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            margin-left: auto;
+        }
+
+        .assumption-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .assumption-grid.open {
+            display: grid;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .assumption-card {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .assumption-card:hover {
+            border-color: var(--neon-blue);
+            transform: scale(1.02);
+        }
+
+        .assumption-card.selected {
+            border-color: var(--neon-orange);
+            background: rgba(255,107,53,0.15);
+        }
+
+        .assumption-card.selected::after {
+            content: '!';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--neon-orange);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .assumption-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .assumption-desc {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.4;
+        }
+
+        .fragility-meter {
+            margin-top: 12px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .fragility-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .fragility-dot.active {
+            background: var(--neon-red);
+            box-shadow: 0 0 10px var(--neon-red);
+        }
+
+        /* Decision Phase */
+        .decision-phase {
+            background: linear-gradient(135deg, rgba(255,51,102,0.1), rgba(255,107,53,0.1));
+            border: 2px solid var(--neon-red);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .decision-timer {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            color: var(--neon-red);
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px var(--neon-red);
+        }
+
+        .decision-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .decision-context {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .decision-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .decision-btn {
+            background: var(--card-bg);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 20px 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .decision-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .decision-btn.follow:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 5px 30px rgba(0,255,136,0.3);
+        }
+
+        .decision-btn.adjust:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 5px 30px rgba(0,240,255,0.3);
+        }
+
+        .decision-btn.override:hover {
+            border-color: var(--neon-orange);
+            box-shadow: 0 5px 30px rgba(255,107,53,0.3);
+        }
+
+        .decision-btn-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .decision-btn-desc {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Rationale Input */
+        .rationale-section {
+            margin: 40px 0;
+            display: none;
+        }
+
+        .rationale-section.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .rationale-prompt {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .rationale-starter {
+            background: rgba(255,215,0,0.1);
+            border-left: 4px solid var(--neon-gold);
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .rationale-input {
+            width: 100%;
+            min-height: 120px;
+            background: var(--card-bg);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            font-family: 'Roboto Condensed', sans-serif;
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .rationale-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0,240,255,0.2);
+        }
+
+        .rationale-input::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* Reality Check / Reveal */
+        .reality-reveal {
+            background: linear-gradient(135deg, var(--card-bg), #1a1a2e);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .reality-reveal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-orange), var(--neon-gold));
+        }
+
+        .reveal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .reveal-badge {
+            display: inline-block;
+            background: var(--neon-red);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .reveal-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+        }
+
+        .what-happened {
+            background: rgba(255,51,102,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .what-happened-title {
+            font-family: 'Oswald', sans-serif;
+            color: var(--neon-red);
+            margin-bottom: 10px;
+        }
+
+        .snap-animation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .snap-before, .snap-after {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .snap-before {
+            border: 2px solid var(--neon-green);
+        }
+
+        .snap-after {
+            border: 2px solid var(--neon-red);
+        }
+
+        .snap-arrow {
+            font-size: 2rem;
+            color: var(--neon-orange);
+            animation: arrowPulse 1s infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Results / Rating */
+        .results-screen {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .rating-display {
+            margin: 40px 0;
+        }
+
+        .rating-tier {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .rating-tier.bronze { color: #cd7f32; text-shadow: 0 0 30px #cd7f32; }
+        .rating-tier.silver { color: #c0c0c0; text-shadow: 0 0 30px #c0c0c0; }
+        .rating-tier.gold { color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold); }
+
+        .rating-subtitle {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .insight-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+            text-align: left;
+        }
+
+        .insight-card {
+            background: var(--glass);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--neon-blue);
+        }
+
+        .insight-card.achieved {
+            border-left-color: var(--neon-green);
+            background: rgba(0,255,136,0.1);
+        }
+
+        .insight-title {
+            font-family: 'Oswald', sans-serif;
+            margin-bottom: 8px;
+        }
+
+        .insight-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-blue), #0080ff);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,240,255,0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .btn-secondary:hover {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-orange));
+            transition: width 0.5s ease;
+            z-index: 1000;
+        }
+
+        /* Name Entry */
+        .name-entry {
+            max-width: 400px;
+            margin: 30px auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            font-family: 'Oswald', sans-serif;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        /* Scenario Selector */
+        .scenario-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .scenario-card {
+            background: var(--card-bg);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .scenario-card:hover {
+            border-color: var(--neon-blue);
+            transform: translateY(-5px);
+        }
+
+        .scenario-card.selected {
+            border-color: var(--neon-orange);
+            box-shadow: 0 0 30px rgba(255,107,53,0.3);
+        }
+
+        .scenario-year {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+            margin-bottom: 10px;
+        }
+
+        .scenario-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+        }
+
+        .scenario-matchup {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.95rem;
+        }
+
+        /* Shake animation for wrong */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.3s ease;
+        }
+
+        /* Confetti for gold */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--neon-gold);
+            animation: confettiFall 3s ease forwards;
+            z-index: 1001;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .logo { font-size: 1.5rem; letter-spacing: 4px; }
+            .intro-title { font-size: 2rem; }
+            .player-showcase { flex-direction: column; align-items: center; }
+            .decision-buttons { flex-direction: column; align-items: center; }
+            .decision-timer { font-size: 2rem; }
+            .rating-tier { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+    <div class="container">
+        <header class="war-room-header">
+            <div class="logo">WAR ROOM</div>
+            <div class="subtitle">PLAYOFF DECISION SIMULATOR</div>
+        </header>
+
+        <!-- Screen 1: Welcome -->
+        <div class="screen active" id="screen-welcome">
+            <div class="intro-screen">
+                <div class="scenario-badge">LIVE SCENARIO</div>
+                <h1 class="intro-title">The Model Says One Thing.<br>Your Gut Says Another.</h1>
+                <p class="intro-desc">
+                    You're in the front office. The analytics team just handed you their projection.
+                    The numbers look good. But something feels off. Do you trust the model,
+                    or do you trust your read on the situation?
+                </p>
+
+                <div class="name-entry">
+                    <div class="input-group">
+                        <label class="input-label">Your Name (for the record)</label>
+                        <input type="text" class="text-input" id="playerName" placeholder="Enter your name">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Email (optional - for your executive report)</label>
+                        <input type="email" class="text-input" id="playerEmail" placeholder="your@email.com">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="startGame()">ENTER THE WAR ROOM</button>
+            </div>
+        </div>
+
+        <!-- Screen 2: Scenario Selection -->
+        <div class="screen" id="screen-scenario">
+            <div class="intro-screen">
+                <h2 class="intro-title">Choose Your Scenario</h2>
+                <p class="intro-desc">Each scenario is based on a real playoff moment where the models got it wrong.</p>
+
+                <div class="scenario-cards">
+                    <div class="scenario-card" onclick="selectScenario(0)">
+                        <div class="scenario-year">2024 PLAYOFFS</div>
+                        <div class="scenario-title">The Ant-Man Paradox</div>
+                        <div class="scenario-matchup">Anthony Edwards vs. The Model's Faith in Consistency</div>
+                    </div>
+                    <div class="scenario-card" onclick="selectScenario(1)">
+                        <div class="scenario-year">2023 FINALS</div>
+                        <div class="scenario-title">Jokic Under Pressure</div>
+                        <div class="scenario-matchup">When MVP Numbers Meet Playoff Adjustments</div>
+                    </div>
+                    <div class="scenario-card" onclick="selectScenario(2)">
+                        <div class="scenario-year">2022 PLAYOFFS</div>
+                        <div class="scenario-title">The Luka Variance</div>
+                        <div class="scenario-matchup">Doncic's Ceiling vs. The Model's Average</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: Briefing -->
+        <div class="screen" id="screen-briefing">
+            <div class="scenario-badge" id="briefingBadge">SCENARIO BRIEFING</div>
+            <h2 class="intro-title" id="briefingTitle"></h2>
+
+            <div class="player-showcase" id="playerShowcase"></div>
+
+            <div class="model-panel">
+                <div class="model-header">
+                    <div class="model-icon">📊</div>
+                    <div>
+                        <div class="model-title">ANALYTICS MODEL PROJECTION</div>
+                        <div class="model-subtitle">Based on 3-year rolling averages, matchup data, and playoff adjustments</div>
+                    </div>
+                </div>
+                <div class="prediction-bar">
+                    <span class="confidence-label">Win Probability:</span>
+                    <div class="prediction-fill" id="predictionFill" style="width: 0%">
+                        <span class="prediction-value" id="predictionValue">0%</span>
+                    </div>
+                </div>
+                <p id="modelExplanation" style="color: rgba(255,255,255,0.6); margin-top: 15px;"></p>
+            </div>
+
+            <button class="btn btn-primary" onclick="goToScanner()">ANALYZE THE MODEL</button>
+        </div>
+
+        <!-- Screen 4: Scanner (Hidden Learning - Assumptions) -->
+        <div class="screen" id="screen-scanner">
+            <h2 class="intro-title" style="text-align: center; margin-bottom: 10px;">Scan For Weak Points</h2>
+            <p style="text-align: center; color: rgba(255,255,255,0.6); margin-bottom: 30px;">
+                Every model makes bets about reality. Find the assumptions that might break.
+            </p>
+
+            <div class="assumption-grid open" id="assumptionGrid"></div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: var(--neon-orange); margin-bottom: 15px;" id="selectionHint">
+                    Select the assumptions you think are most fragile (click to toggle)
+                </p>
+                <button class="btn btn-primary" onclick="goToContext()" id="continueToContext" style="display: none;">
+                    CONTINUE TO INTEL
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen 5: Context Signals (Hidden Learning - Stability) -->
+        <div class="screen" id="screen-context">
+            <h2 class="intro-title" style="text-align: center; margin-bottom: 10px;">Ground-Level Intel</h2>
+            <p style="text-align: center; color: rgba(255,255,255,0.6); margin-bottom: 30px;">
+                What conditions were in place when the model was built? Check what's still true.
+            </p>
+
+            <div class="assumption-grid open" id="contextGrid"></div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" onclick="goToDecision()">MAKE YOUR CALL</button>
+            </div>
+        </div>
+
+        <!-- Screen 6: Decision Time -->
+        <div class="screen" id="screen-decision">
+            <div class="decision-phase">
+                <div class="decision-timer" id="decisionTimer">DECISION TIME</div>
+                <h2 class="decision-title">The Model Says: <span id="modelRecommendation"></span></h2>
+                <p class="decision-context" id="decisionContext"></p>
+
+                <div class="decision-buttons">
+                    <button class="decision-btn follow" onclick="makeDecision('follow')">
+                        <div class="decision-btn-title">FOLLOW THE MODEL</div>
+                        <div class="decision-btn-desc">Trust the numbers. They've worked before.</div>
+                    </button>
+                    <button class="decision-btn adjust" onclick="makeDecision('adjust')">
+                        <div class="decision-btn-title">ADJUST THE MODEL</div>
+                        <div class="decision-btn-desc">Use it as a baseline, apply your read.</div>
+                    </button>
+                    <button class="decision-btn override" onclick="makeDecision('override')">
+                        <div class="decision-btn-title">OVERRIDE THE MODEL</div>
+                        <div class="decision-btn-desc">The situation changed. Go with your gut.</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="rationale-section" id="rationaleSection">
+                <h3 class="rationale-prompt">Why are you making this call?</h3>
+                <div class="rationale-starter" id="rationaleStarter"></div>
+                <textarea class="rationale-input" id="rationaleInput" placeholder="The model assumed... but the situation changed because..."></textarea>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="submitDecision()">LOCK IN DECISION</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 7: Reality Reveal -->
+        <div class="screen" id="screen-reveal">
+            <div class="reality-reveal">
+                <div class="reveal-header">
+                    <div class="reveal-badge">REALITY CHECK</div>
+                    <h2 class="reveal-title">Here's What Actually Happened</h2>
+                </div>
+
+                <div class="what-happened">
+                    <div class="what-happened-title">THE OUTCOME:</div>
+                    <p id="outcomeText"></p>
+                </div>
+
+                <div class="snap-animation">
+                    <div class="snap-before">
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">MODEL ASSUMED</div>
+                        <div id="snapBefore" style="font-family: 'Oswald', sans-serif; font-size: 1.2rem;"></div>
+                    </div>
+                    <div class="snap-arrow">→</div>
+                    <div class="snap-after">
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">REALITY WAS</div>
+                        <div id="snapAfter" style="font-family: 'Oswald', sans-serif; font-size: 1.2rem;"></div>
+                    </div>
+                </div>
+
+                <div id="whyItBroke" style="background: var(--glass); border-radius: 12px; padding: 25px; margin-top: 20px;">
+                    <h4 style="font-family: 'Oswald', sans-serif; color: var(--neon-orange); margin-bottom: 10px;">THE ASSUMPTION THAT SNAPPED:</h4>
+                    <p id="snappedAssumption"></p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" onclick="goToResults()">SEE YOUR RATING</button>
+            </div>
+        </div>
+
+        <!-- Screen 8: Results -->
+        <div class="screen" id="screen-results">
+            <div class="results-screen">
+                <h2 class="intro-title">Your Executive Rating</h2>
+
+                <div class="rating-display">
+                    <div class="rating-tier" id="ratingTier">GOLD</div>
+                    <div class="rating-subtitle" id="ratingTitle">Model Whisperer</div>
+                </div>
+
+                <div class="insight-breakdown" id="insightBreakdown"></div>
+
+                <div id="reflectionBlock" style="background: var(--card-bg); border-radius: 16px; padding: 30px; margin: 30px 0; text-align: left; border-left: 4px solid var(--neon-gold);">
+                    <h3 style="font-family: 'Oswald', sans-serif; margin-bottom: 15px;">What You Demonstrated:</h3>
+                    <p id="reflectionText" style="color: rgba(255,255,255,0.8); line-height: 1.7;"></p>
+                </div>
+
+                <div style="background: var(--glass); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.5); margin-bottom: 5px;">YOUR CLAIM CODE</div>
+                    <div id="claimCode" style="font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--neon-blue);"></div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="playAgain()">RUN ANOTHER SCENARIO</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const state = {
+            playerName: '',
+            playerEmail: '',
+            currentScenario: null,
+            selectedAssumptions: [],
+            checkedContexts: [],
+            decision: null,
+            rationale: '',
+            currentScreen: 0
+        };
+
+        // Scenarios with Real Players
+        const scenarios = [
+            {
+                id: 'ant_edwards_2024',
+                year: '2024 PLAYOFFS',
+                title: 'The Ant-Man Paradox',
+                players: [
+                    {
+                        name: 'Anthony Edwards',
+                        team: 'Minnesota Timberwolves',
+                        stats: { ppg: 25.9, apg: 5.1, rpg: 5.4 }
+                    }
+                ],
+                modelConfidence: 72,
+                modelExplanation: "Edwards' playoff usage efficiency suggests a 72% probability of maintaining scoring pace against Denver's switching defense. Historical data shows young stars often struggle in closeout games.",
+                modelRecommendation: "Bet on regression to mean",
+                decisionContext: "It's Game 7. Edwards has been on fire, but the model says young players historically cool off in elimination games. The numbers suggest a modest performance.",
+                assumptions: [
+                    { id: 'fatigue', name: 'Fatigue Management', desc: "Assumes Edwards' legs will tire as the series extends, dropping his shooting efficiency.", fragility: 3 },
+                    { id: 'pressure', name: 'Playoff Pressure', desc: "Assumes younger players crack under elimination game pressure.", fragility: 4 },
+                    { id: 'defense', name: 'Defensive Adjustment', desc: "Assumes Denver will successfully adjust and take away his primary actions.", fragility: 2 },
+                    { id: 'variance', name: 'Hot Streak Normalization', desc: "Assumes his hot shooting will regress to career averages.", fragility: 4 },
+                    { id: 'role', name: 'Usage Consistency', desc: "Assumes his role and shot distribution will stay similar to regular season.", fragility: 2 },
+                    { id: 'support', name: 'Teammate Performance', desc: "Assumes role players will maintain their average production.", fragility: 3 }
+                ],
+                contextSignals: [
+                    { id: 'crowd', name: 'Home Court Advantage', desc: "Playing at Target Center with deafening crowd support", present: true },
+                    { id: 'rest', name: 'Recovery Time', desc: "Full 2-day rest between games", present: true },
+                    { id: 'confidence', name: 'Player Mentality', desc: "Edwards quoted saying 'I'm Him' - supreme confidence", present: true },
+                    { id: 'scheme', name: 'Defensive Scheme', desc: "Denver exhausted their adjustment options in Games 5-6", present: false },
+                    { id: 'injury', name: 'Health Status', desc: "No reported injuries or limitations", present: true }
+                ],
+                outcome: "Edwards went absolutely nuclear - 37 points on efficient shooting, dominating in the clutch. The 'regression to mean' never came. Instead, he elevated when it mattered most.",
+                snapBefore: "Young stars regress in Game 7s",
+                snapAfter: "Edwards thrives under pressure",
+                snappedAssumption: "The model bet on historical patterns of young players folding under pressure. But Edwards isn't historical - he's a different breed. The assumption that 'playoff pressure' would suppress his performance was exactly backwards. Some players RISE to the moment.",
+                correctDecision: 'override'
+            },
+            {
+                id: 'jokic_2023',
+                year: '2023 FINALS',
+                title: 'Jokic Under Pressure',
+                players: [
+                    {
+                        name: 'Nikola Jokic',
+                        team: 'Denver Nuggets',
+                        stats: { ppg: 24.5, apg: 9.8, rpg: 11.8 }
+                    }
+                ],
+                modelConfidence: 68,
+                modelExplanation: "Jokic's regular season dominance (65% TS) historically drops 8-12% against elite playoff defenses. Miami's zone should disrupt his passing lanes.",
+                modelRecommendation: "Expect efficiency drop",
+                decisionContext: "Miami has elite perimeter defenders and a zone scheme designed to take away Jokic's passing. The model predicts his assist numbers will crater.",
+                assumptions: [
+                    { id: 'zone', name: 'Zone Vulnerability', desc: "Assumes zone defense will confuse his reads and limit assists.", fragility: 3 },
+                    { id: 'fatigue', name: 'Deep Playoff Fatigue', desc: "Assumes the long playoff run will slow his decision-making.", fragility: 2 },
+                    { id: 'doubles', name: 'Double Team Response', desc: "Assumes aggressive doubles will force turnovers.", fragility: 4 },
+                    { id: 'pace', name: 'Pace Adjustment', desc: "Assumes Miami's slower pace will limit his opportunities.", fragility: 3 },
+                    { id: 'shooting', name: 'Perimeter Shooting', desc: "Assumes his 3-point shooting will decline under pressure.", fragility: 3 },
+                    { id: 'teammates', name: 'Teammate Conversion', desc: "Assumes role players will miss the open looks he creates.", fragility: 4 }
+                ],
+                contextSignals: [
+                    { id: 'experience', name: 'Finals Experience', desc: "First Finals appearance for Jokic", present: false },
+                    { id: 'system', name: 'System Mastery', desc: "5 years in Malone's system - knows every counter", present: true },
+                    { id: 'health', name: 'Full Health', desc: "No injury concerns throughout playoffs", present: true },
+                    { id: 'spacing', name: 'Floor Spacing', desc: "Nuggets surrounded him with shooters", present: true },
+                    { id: 'adjustment', name: 'Mid-Series Adjustments', desc: "Coaching staff's film prep", present: true }
+                ],
+                outcome: "Jokic destroyed the zone. His court vision found every gap, averaging 10+ assists while shooting 58% from the field. The 'efficiency drop' model was completely wrong.",
+                snapBefore: "Zone defense limits passing",
+                snapAfter: "Jokic reads zone like a book",
+                snappedAssumption: "The model assumed zone defense was a universal Jokic-stopper because it works against most big men. But Jokic isn't most big men - his passing IQ lets him dissect zones better than guards. The assumption that 'defensive schemes' would limit him ignored his unique skill set.",
+                correctDecision: 'override'
+            },
+            {
+                id: 'luka_2022',
+                year: '2022 PLAYOFFS',
+                title: 'The Luka Variance',
+                players: [
+                    {
+                        name: 'Luka Doncic',
+                        team: 'Dallas Mavericks',
+                        stats: { ppg: 28.4, apg: 8.7, rpg: 9.1 }
+                    }
+                ],
+                modelConfidence: 64,
+                modelExplanation: "Doncic's high usage rate (37%) historically correlates with late-game fatigue and turnover spikes. Phoenix's switching defense should exploit this.",
+                modelRecommendation: "Hedge against blowup games",
+                decisionContext: "Down 2-0, the model says Dallas has a 12% series win probability. Luka's been good but inconsistent. The numbers say Phoenix closes this out.",
+                assumptions: [
+                    { id: 'usage', name: 'Usage Sustainability', desc: "Assumes 37%+ usage will lead to diminishing returns.", fragility: 3 },
+                    { id: 'turnovers', name: 'Turnover Regression', desc: "Assumes his assist-to-turnover ratio will worsen under pressure.", fragility: 3 },
+                    { id: 'defense', name: 'Defensive Liability', desc: "Assumes Phoenix will hunt him on switches relentlessly.", fragility: 4 },
+                    { id: 'supporting', name: 'Supporting Cast', desc: "Assumes Brunson/DFS can't carry enough offensive load.", fragility: 5 },
+                    { id: 'endurance', name: 'Series Endurance', desc: "Assumes his body breaks down as the series extends.", fragility: 3 },
+                    { id: 'ayton', name: 'Ayton Matchup', desc: "Assumes Ayton's rim protection limits his paint points.", fragility: 2 }
+                ],
+                contextSignals: [
+                    { id: 'elimination', name: 'Elimination Mode', desc: "Luka's career stats improve in must-win games", present: true },
+                    { id: 'home', name: 'Home Court', desc: "Returning to Dallas for Games 3-4", present: true },
+                    { id: 'booker', name: 'Booker Status', desc: "Booker dealing with hamstring tightness", present: true },
+                    { id: 'rotation', name: 'Rotation Depth', desc: "Phoenix's 7-man rotation showing fatigue", present: true },
+                    { id: 'scheme', name: 'Defensive Scheme', desc: "Mavs adjusted to attack CP3 in pick and roll", present: true }
+                ],
+                outcome: "Luka went supernova. 33/11/8 average over the next 4 games. Dallas won the series 4-3 in one of the great comebacks. The 12% model was obliterated.",
+                snapBefore: "High usage leads to burnout",
+                snapAfter: "Luka's usage unlocks dominance",
+                snappedAssumption: "The model assumed high usage was a bug, not a feature. It treated Luka like a normal player who would tire. But for certain generational talents, higher usage doesn't mean worse efficiency - it means more control. The model's framework couldn't capture 'takeover mode.'",
+                correctDecision: 'override'
+            }
+        ];
+
+        // Game Functions
+        function startGame() {
+            const name = document.getElementById('playerName').value.trim();
+            if (!name) {
+                document.getElementById('playerName').classList.add('shake');
+                setTimeout(() => document.getElementById('playerName').classList.remove('shake'), 300);
+                return;
+            }
+            state.playerName = name;
+            state.playerEmail = document.getElementById('playerEmail').value.trim();
+            showScreen('screen-scenario');
+            updateProgress(15);
+        }
+
+        function selectScenario(index) {
+            document.querySelectorAll('.scenario-card').forEach((card, i) => {
+                card.classList.toggle('selected', i === index);
+            });
+            state.currentScenario = scenarios[index];
+            setTimeout(() => {
+                showScreen('screen-briefing');
+                loadBriefing();
+                updateProgress(25);
+            }, 300);
+        }
+
+        function loadBriefing() {
+            const s = state.currentScenario;
+            document.getElementById('briefingBadge').textContent = s.year;
+            document.getElementById('briefingTitle').textContent = s.title;
+
+            // Player cards
+            const showcase = document.getElementById('playerShowcase');
+            showcase.innerHTML = s.players.map(p => `
+                <div class="player-card">
+                    <div class="player-name">${p.name}</div>
+                    <div class="player-team">${p.team}</div>
+                    <div class="player-stats">
+                        <div class="stat-box">
+                            <div class="stat-value">${p.stats.ppg}</div>
+                            <div class="stat-label">PPG</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${p.stats.apg}</div>
+                            <div class="stat-label">APG</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${p.stats.rpg}</div>
+                            <div class="stat-label">RPG</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Animate prediction bar
+            setTimeout(() => {
+                document.getElementById('predictionFill').style.width = s.modelConfidence + '%';
+                document.getElementById('predictionValue').textContent = s.modelConfidence + '%';
+            }, 500);
+
+            document.getElementById('modelExplanation').textContent = s.modelExplanation;
+        }
+
+        function goToScanner() {
+            showScreen('screen-scanner');
+            loadAssumptions();
+            updateProgress(40);
+        }
+
+        function loadAssumptions() {
+            const s = state.currentScenario;
+            const grid = document.getElementById('assumptionGrid');
+
+            grid.innerHTML = s.assumptions.map(a => `
+                <div class="assumption-card" data-id="${a.id}" onclick="toggleAssumption('${a.id}')">
+                    <div class="assumption-name">${a.name}</div>
+                    <div class="assumption-desc">${a.desc}</div>
+                    <div class="fragility-meter">
+                        ${[1,2,3,4,5].map(i => `
+                            <div class="fragility-dot ${i <= a.fragility ? 'active' : ''}"></div>
+                        `).join('')}
+                    </div>
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 5px;">
+                        Fragility: ${['Very Low', 'Low', 'Medium', 'High', 'Critical'][a.fragility - 1]}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleAssumption(id) {
+            const card = document.querySelector(`[data-id="${id}"]`);
+            card.classList.toggle('selected');
+
+            if (state.selectedAssumptions.includes(id)) {
+                state.selectedAssumptions = state.selectedAssumptions.filter(a => a !== id);
+            } else {
+                state.selectedAssumptions.push(id);
+            }
+
+            if (state.selectedAssumptions.length >= 2) {
+                document.getElementById('continueToContext').style.display = 'inline-block';
+                document.getElementById('selectionHint').textContent = `${state.selectedAssumptions.length} weak points identified`;
+            } else {
+                document.getElementById('selectionHint').textContent = 'Select at least 2 assumptions you think might break';
+            }
+        }
+
+        function goToContext() {
+            showScreen('screen-context');
+            loadContext();
+            updateProgress(55);
+        }
+
+        function loadContext() {
+            const s = state.currentScenario;
+            const grid = document.getElementById('contextGrid');
+
+            grid.innerHTML = s.contextSignals.map(c => `
+                <div class="assumption-card" data-context="${c.id}" onclick="toggleContext('${c.id}')">
+                    <div class="assumption-name">${c.name}</div>
+                    <div class="assumption-desc">${c.desc}</div>
+                    <div style="margin-top: 10px; font-size: 0.85rem; color: ${c.present ? 'var(--neon-green)' : 'var(--neon-red)'};">
+                        ${c.present ? '✓ Still True' : '✗ Changed'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleContext(id) {
+            const card = document.querySelector(`[data-context="${id}"]`);
+            card.classList.toggle('selected');
+
+            if (state.checkedContexts.includes(id)) {
+                state.checkedContexts = state.checkedContexts.filter(c => c !== id);
+            } else {
+                state.checkedContexts.push(id);
+            }
+        }
+
+        function goToDecision() {
+            showScreen('screen-decision');
+            const s = state.currentScenario;
+            document.getElementById('modelRecommendation').textContent = s.modelRecommendation;
+            document.getElementById('decisionContext').textContent = s.decisionContext;
+            updateProgress(70);
+        }
+
+        function makeDecision(decision) {
+            state.decision = decision;
+            document.querySelectorAll('.decision-btn').forEach(btn => {
+                btn.style.opacity = btn.classList.contains(decision) ? '1' : '0.4';
+            });
+
+            document.getElementById('rationaleSection').classList.add('visible');
+
+            const starters = {
+                follow: "I'm trusting the model because the numbers suggest...",
+                adjust: "I'm using the model as a starting point, but adjusting because...",
+                override: "I'm overriding the model because the situation changed - specifically..."
+            };
+            document.getElementById('rationaleStarter').textContent = starters[decision];
+        }
+
+        function submitDecision() {
+            const rationale = document.getElementById('rationaleInput').value.trim();
+            if (rationale.length < 20) {
+                document.getElementById('rationaleInput').classList.add('shake');
+                setTimeout(() => document.getElementById('rationaleInput').classList.remove('shake'), 300);
+                return;
+            }
+            state.rationale = rationale;
+            showScreen('screen-reveal');
+            loadReveal();
+            updateProgress(85);
+        }
+
+        function loadReveal() {
+            const s = state.currentScenario;
+            document.getElementById('outcomeText').textContent = s.outcome;
+            document.getElementById('snapBefore').textContent = s.snapBefore;
+            document.getElementById('snapAfter').textContent = s.snapAfter;
+            document.getElementById('snappedAssumption').textContent = s.snappedAssumption;
+        }
+
+        function goToResults() {
+            showScreen('screen-results');
+            calculateResults();
+            updateProgress(100);
+        }
+
+        function calculateResults() {
+            const s = state.currentScenario;
+
+            // Calculate tier based on engagement quality
+            let score = 0;
+
+            // Did they identify the right assumptions?
+            const correctAssumptions = ['pressure', 'variance', 'zone', 'doubles', 'usage', 'supporting'];
+            state.selectedAssumptions.forEach(a => {
+                if (correctAssumptions.includes(a)) score += 10;
+            });
+
+            // Did they check context signals?
+            score += state.checkedContexts.length * 5;
+
+            // Did they make the right call?
+            if (state.decision === s.correctDecision) score += 20;
+
+            // Rationale quality (simple keyword check)
+            const rationale = state.rationale.toLowerCase();
+            const insightKeywords = ['assumed', 'assumption', 'changed', 'context', 'environment', 'pressure', 'adapted', 'different'];
+            insightKeywords.forEach(kw => {
+                if (rationale.includes(kw)) score += 5;
+            });
+
+            // Determine tier
+            let tier, tierTitle, tierClass;
+            if (score >= 60) {
+                tier = 'GOLD';
+                tierTitle = 'Model Whisperer';
+                tierClass = 'gold';
+                createConfetti();
+            } else if (score >= 35) {
+                tier = 'SILVER';
+                tierTitle = 'Pattern Spotter';
+                tierClass = 'silver';
+            } else {
+                tier = 'BRONZE';
+                tierTitle = 'Rookie Analyst';
+                tierClass = 'bronze';
+            }
+
+            document.getElementById('ratingTier').textContent = tier;
+            document.getElementById('ratingTier').className = 'rating-tier ' + tierClass;
+            document.getElementById('ratingTitle').textContent = tierTitle;
+
+            // Insight breakdown
+            const breakdown = document.getElementById('insightBreakdown');
+            const insights = [
+                {
+                    title: 'Assumption Awareness',
+                    desc: 'Identifying the hidden bets inside the model',
+                    achieved: state.selectedAssumptions.length >= 2
+                },
+                {
+                    title: 'Context Reading',
+                    desc: 'Noticing when conditions on the ground shift',
+                    achieved: state.checkedContexts.length >= 3
+                },
+                {
+                    title: 'Decision Ownership',
+                    desc: 'Making an explicit call rather than deferring',
+                    achieved: state.decision !== null
+                },
+                {
+                    title: 'Executive Reasoning',
+                    desc: 'Connecting assumptions to real-world changes',
+                    achieved: score >= 50
+                }
+            ];
+
+            breakdown.innerHTML = insights.map(i => `
+                <div class="insight-card ${i.achieved ? 'achieved' : ''}">
+                    <div class="insight-title">${i.achieved ? '✓' : '○'} ${i.title}</div>
+                    <div class="insight-desc">${i.desc}</div>
+                </div>
+            `).join('');
+
+            // Reflection
+            const reflections = {
+                gold: `You demonstrated executive-level judgment. You didn't just identify that the model had assumptions - you connected those assumptions to specific changes in the environment. You recognized that ${s.players[0].name}'s situation wasn't a normal case, and you made a decisive call backed by reasoning. That's exactly what front offices need.`,
+                silver: `You showed strong pattern recognition. You identified several key assumptions in the model and tracked important context signals. Your decision showed you understand that models are tools, not oracles. Next step: tie your reasoning more explicitly to WHAT assumed and HOW reality changed.`,
+                bronze: `You entered the War Room and made a call - that takes courage. Models are only as good as their assumptions, and you started noticing that. Keep practicing: look for the hidden bets inside any projection, and ask "what would have to stay true for this to work?"`
+            };
+
+            document.getElementById('reflectionText').textContent = reflections[tierClass];
+
+            // Claim code
+            const code = `WAR-${Date.now().toString(36).toUpperCase()}-${tier.charAt(0)}`;
+            document.getElementById('claimCode').textContent = code;
+        }
+
+        function createConfetti() {
+            const colors = ['#ffd700', '#ff6b35', '#00f0ff', '#00ff88', '#ff3366'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 4000);
+                }, i * 50);
+            }
+        }
+
+        function playAgain() {
+            state.selectedAssumptions = [];
+            state.checkedContexts = [];
+            state.decision = null;
+            state.rationale = '';
+            showScreen('screen-scenario');
+            updateProgress(15);
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+    </script>
+</body>
+</html>
